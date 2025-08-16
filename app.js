@@ -186,7 +186,11 @@ class DorkleGame {
 
     // Pause controls
     this.resumeBtn.addEventListener("click", () => this.resumeGame());
-    this.quitBtn.addEventListener("click", () => this.endGame());
+    this.quitBtn.addEventListener("click", () => {
+      this.isPaused = false;
+      this.pauseScreen.classList.remove("active");
+      this.endGame();
+    });
 
     // Keyboard controls
     document.addEventListener("keydown", (e) => this.handleKeypress(e));
@@ -196,6 +200,13 @@ class DorkleGame {
       this.handleTouchStart(e),
     );
     this.gameCard.addEventListener("touchmove", (e) => this.handleTouchMove(e));
+
+    // Pause overlay click outside to resume
+    this.pauseScreen.addEventListener("click", (e) => {
+      if (e.target === this.pauseScreen) {
+        this.resumeGame();
+      }
+    });
   }
 
   selectRandomCategory() {
@@ -460,12 +471,24 @@ class DorkleGame {
 
     this.isPaused = true;
     this.resetCountdownVisuals();
-    this.showScreen(this.pauseScreen);
+    this.pauseScreen.classList.add("active");
+
+    // Focus on resume button for accessibility
+    setTimeout(() => {
+      this.resumeBtn.focus();
+    }, 100);
   }
 
   resumeGame() {
     this.isPaused = false;
-    this.showScreen(this.gameScreen);
+    this.pauseScreen.classList.remove("active");
+
+    // Return focus to game controls
+    setTimeout(() => {
+      if (this.correctBtn) {
+        this.correctBtn.focus();
+      }
+    }, 100);
   }
 
   endGame() {
@@ -672,9 +695,9 @@ class DorkleGame {
   }
 
   showScreen(screen) {
-    // Hide all screens
+    // Hide all screens except overlays
     document
-      .querySelectorAll(".screen")
+      .querySelectorAll(".screen:not(.overlay)")
       .forEach((s) => s.classList.remove("active"));
 
     // Show target screen
@@ -687,7 +710,16 @@ class DorkleGame {
   }
 
   handleKeypress(e) {
-    if (!this.isGameActive || this.isPaused) return;
+    // Handle pause/resume with escape key
+    if (this.isPaused) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        this.resumeGame();
+      }
+      return;
+    }
+
+    if (!this.isGameActive) return;
 
     switch (e.key) {
       case " ":
